@@ -2,18 +2,52 @@ import numpy as np
 import matplotlib.pyplot as plt
 import random
 
-crnt_state = [ random.randint(0,20), random.randint(0,20)]
-def action(crnt_state, move):
-    """!
-    @param crnt_state List of cars in Location 0 and 1 respectively.
-    @param move Number of cars moved from Location 0 to Location 1.
-    """
-    rqst0 = np.random.poisson(lam=3)
-    rqst1 = np.random.poisson(lam=4)
-    rtn0 = np.random.poisson(lam=3)
-    rtn1 = np.random.poisson(lam=2)
+class JackRental():
+    def __init__(self) -> None:
+        self.gamma = 0.9
+        self.reset()
 
-    reward = (10 * np.min([crnt_state[0], rqst0])
-              + 10 * np.min([crnt_state[1], rqst1])
-              - 2 * previous_move)
+    def reset(self):
+        self.crnt_state = [random.randint(0,20), random.randint(0,20)]
+        self.actn = 0
+        self.rqst = np.array([0, 0])
+        self.rtn = np.array([0, 0])
+        self.tt_rwrd = 0
+        
+
+    def step(self, actn):
+        if abs(actn) > 5:
+            actn = np.sign(actn) * 5
+        # Rewards for the past action
+        reward = (10 * np.min([self.crnt_state[0], self.rqst[0]])
+        + 10 * np.min([self.crnt_state[1], self.rqst[1]])
+        - 2 * self.actn)
+
+        # New state depends on the request of cars and the number of returns of the day
+        # before.
+        self.rqst = np.array([np.random.poisson(lam=3), np.random.poisson(lam=4)])
+        new_state = self.crnt_state + self.rtn - self.rqst
+        new_state = np.clip(np.array([new_state[0] - actn, new_state[1] + actn]), 0,20)
+        self.rtn = np.array([np.random.poisson(lam=3), np.random.poisson(lam=2)])
+        self.actn = actn
+
+        return reward, new_state
+    
+    def policy(self):
+        actn = np.random.randint(-5, 5)     # random policy
+        actn = 0                            # Do nothing
+        return actn
+    
+    def run(self):
+        for i in range(100):
+            actn = self.policy()
+            rwrd, self.crnt_state = self.step(actn)
+            self.tt_rwrd = rwrd + self.gamma* self.tt_rwrd
+    
+
+if __name__ == "__main__":
+    myRental = JackRental()
+    myRental.run()
+
+
 
