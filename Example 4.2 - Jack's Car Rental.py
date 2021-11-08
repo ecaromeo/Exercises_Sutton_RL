@@ -5,6 +5,8 @@ import random
 class JackRental():
     def __init__(self) -> None:
         self.gamma = 0.9
+        self.policymap = np.zeros((20, 20))
+        self.valuemap = np.zeros((20, 20))
         self.reset()
 
     def reset(self):
@@ -19,10 +21,7 @@ class JackRental():
         if abs(actn) > 5:
             actn = np.sign(actn) * 5
         # Rewards for the past action
-        reward = (10 * np.min([self.crnt_state[0], self.rqst[0]])
-        + 10 * np.min([self.crnt_state[1], self.rqst[1]])
-        - 2 * self.actn)
-
+        reward = self.calc_reward(self.crnt_state, self.rqst, self.actn)
         # New state depends on the request of cars and the number of returns of the day
         # before.
         self.rqst = np.array([np.random.poisson(lam=3), np.random.poisson(lam=4)])
@@ -32,11 +31,28 @@ class JackRental():
         self.actn = actn
 
         return reward, new_state
+
+    def calc_reward(self, crnt_state, rqst, actn):
+        reward = (10 * np.min([crnt_state[0], rqst[0]])
+                    + 10 * np.min([crnt_state[1], rqst[1]])
+                    - 2 * actn)
     
     def policy(self):
         actn = np.random.randint(-5, 5)     # random policy
         actn = 0                            # Do nothing
+        actn = self.policymap[self.crnt_state[0], self.crnt_state[1]]   # Apply policy
         return actn
+
+    def policy_evaluation(self):
+        thrsh = 0.1
+        eps = 1
+        while eps > thrsh:
+            for i, j in zip(range(20), range(20)):
+                actn = self.policymap[i,j]
+                tmp_value = self.calc_reward(np.array([i,j]), 
+                                             np.array([]), actn) 
+                            + self.valuemap[i + actn, j - actn]
+
     
     def run(self):
         for i in range(100):
